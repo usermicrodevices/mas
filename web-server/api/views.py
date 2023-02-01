@@ -29,7 +29,7 @@ from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.schemas.coreapi import SchemaGenerator
 
-from core.models import Equipment, NotificationSource, NotificationOption, NotificationTemplate, NotificationBulkEmail
+from core.models import Device, NotificationSource, NotificationOption, NotificationTemplate, NotificationBulkEmail
 
 from users.models import User
 from users.serializers import UserSerializer

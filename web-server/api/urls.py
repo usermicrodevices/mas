@@ -7,7 +7,7 @@ import rest_framework_jwt.views
 
 from . import views
 
-from core.views import EquipmentViewSet
+from core.views import DeviceViewSet
 
 from users.views import RoleViewSet, UserViewSet
 
@@ -16,7 +16,7 @@ router_refs.register('roles', RoleViewSet)
 router_refs.register('users', UserViewSet)
 
 router = DefaultRouter()
-router.register('equipments', EventViewSet, basename='equipment')
+router.register('devices', EventViewSet, basename='device')
 
 urlpatterns = [
 	path('', views.index, name='index'),
