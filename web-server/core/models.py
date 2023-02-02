@@ -12,7 +12,6 @@ from django.db.utils import IntegrityError
 
 from users.models import User
 from django.conf import settings
-from django.db.models import JSONField
 
 try:
 	from zoneinfo import available_timezones, ZoneInfo
@@ -44,14 +43,18 @@ class CustomAbstractModel(models.Model):
 		logging.error(msg)
 
 
-
-class DeviceType(CustomAbstractModel):
-	name = models.CharField(max_length=191, default='', unique=True, verbose_name=_('caption'), help_text=_('Caption of type'))
-	description = models.TextField(default=None, null=True, blank=True, verbose_name=_('description'), help_text=_('Description of type'))
+class Owner(CustomAbstractModel):
+	name = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('name'), help_text=_('Name of owner'))
+	family = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('family'), help_text=_('Family of owner'))
+	patronymic = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('patronymic'), help_text=_('Patronymic of owner'))
+	domain = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('domain'))
+	login = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('login'), help_text=_('External login of owner for device OS or domain'))
+	password = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('password'), help_text=_('Password of owner for external login'))
+	active = models.BooleanField(default=True, null=False, verbose_name=_('active'), help_text=_('Active owner or historical record'))
 
 	class Meta:
-		verbose_name = f'🖥{_("Device Type")}'
-		verbose_name_plural = f'🖥{_("Device Types")}'
+		verbose_name = f'🧟{_("Owner")}'
+		verbose_name_plural = f'🧟{_("Owners")}'
 		ordering = ['name']
 
 	def __str__(self):
@@ -59,7 +62,7 @@ class DeviceType(CustomAbstractModel):
 
 
 class Tag(CustomAbstractModel):
-	name = models.CharField(max_length=191, unique=True, null=False, blank=False, default='', verbose_name=_('caption'), help_text=_('Caption of tag'))
+	name = models.CharField(max_length=191, unique=True, null=False, blank=False, default='', verbose_name=_('name'), help_text=_('Caption of tag'))
 	weight = models.IntegerField(default=0, null=False, blank=False, verbose_name=_('weight'))
 
 	class Meta:
@@ -71,17 +74,45 @@ class Tag(CustomAbstractModel):
 		return self.name
 
 
+class DeviceType(CustomAbstractModel):
+	name = models.CharField(max_length=191, default='', unique=True, verbose_name=_('name'), help_text=_('Caption of type'))
+	description = models.TextField(default=None, null=True, blank=True, verbose_name=_('description'), help_text=_('Description of type'))
+
+	class Meta:
+		verbose_name = f'🖥{_("Device Type")}'
+		verbose_name_plural = f'🖥{_("Device Types")}'
+		ordering = ['name']
+
+	def __str__(self):
+		return self.name
+
+
+class DeviceGroup(CustomAbstractModel):
+	parent = models.ForeignKey('self', default=None, null=True, blank=True, on_delete=models.CASCADE)
+	name = models.CharField(max_length=191, null=False, blank=False, default='', verbose_name=_('name'), help_text=_('Caption of device group'))
+
+	class Meta:
+		unique_together = ('parent', 'name')
+		verbose_name = f'📺{_("Device Group")}'
+		verbose_name_plural = f'📺{_("Device Groups")}'
+		ordering = ['name']
+
+	def __str__(self):
+		return self.name
+
+
 class Device(CustomAbstractModel):
+	group = models.ForeignKey(DeviceGroup, default=None, null=True, blank=True, on_delete=models.SET_NULL, verbose_name=_('model'))
 	device_model = models.ForeignKey(DeviceType, default=None, null=True, blank=True, on_delete=models.SET_NULL, verbose_name=_('model'))
-	created_date = models.DateTimeField(auto_now_add=True, verbose_name=_('created date'), help_text=_('Date of creation on server'))
+	created = models.DateTimeField(auto_now_add=True, verbose_name=_('created date'), help_text=_('Date of creation on server'))
 	tz = models.CharField(max_length=191, choices=[(t, t) for t in sorted(available_timezones())], default=settings.TIME_ZONE, null=False, blank=False, verbose_name=_('timezone'), help_text=_('Timezone of dates'))
 	status = models.IntegerField(default=0, verbose_name=_('status'), help_text=_('Status of device (on=1, off=0, not used=-1)'))
 	tags = models.ManyToManyField(Tag, blank=True, verbose_name=_('tags'))
 	extinfo = models.JSONField(default=dict, blank=True)
 
 	class Meta:
-		verbose_name = f'🖥{_("Device")}'
-		verbose_name_plural = f'🖥️{_("Devices")}'
+		verbose_name = f'💻{_("Device")}'
+		verbose_name_plural = f'💻{_("Devices")}'
 		ordering = ['name']
 
 	def __str__(self):
@@ -108,9 +139,22 @@ class Device(CustomAbstractModel):
 		return self.date_tz(dt.utcfromtimestamp(value))
 
 
+class History(CustomAbstractModel):
+	created = models.DateTimeField(_('created date'), auto_now_add=True, help_text=_('Date of creation new record'))
+	closed = models.DateTimeField(_('closed date'), default=None, null=True, blank=True, db_index=True, help_text=_('Closed date of history'))
+	device = models.ForeignKey(Device, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name=_('device'))
+	owner = device = models.ForeignKey(Owner, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name=_('device'))
+
+	class Meta:
+		unique_together = ('created', 'device', 'owner')
+		verbose_name = f'📜{_("History")}'
+		verbose_name_plural = f'📜{_("Histories")}'
+		ordering = ['name']
+
+
 class NotificationSourceGroup(models.Model):
-	name = models.CharField(max_length=191, unique=True, default='New notification group', null=False, blank=False, verbose_name=_('Name'), help_text=_('Name notification group'))
-	description = models.TextField(default=None, null=True, blank=True, verbose_name=_('Description'), help_text=_('description of notification group'))
+	name = models.CharField(max_length=191, unique=True, default='New notification group', null=False, blank=False, verbose_name=_('name'), help_text=_('Name notification group'))
+	description = models.TextField(default=None, null=True, blank=True, verbose_name=_('description'), help_text=_('description of notification group'))
 
 	class Meta:
 		verbose_name = f'🔔{_("Notification Source Group")}'
@@ -123,7 +167,7 @@ class NotificationSourceGroup(models.Model):
 class NotificationSource(models.Model):
 	cache = caches['notifications']
 	value = models.CharField(max_length=64, null=False, blank=False, unique=True, verbose_name=_('Value'), help_text=_('internal name notification source'))
-	name = models.CharField(max_length=191, null=False, blank=False, verbose_name=_('Name'), help_text=_('name notification source'))
+	name = models.CharField(max_length=191, null=False, blank=False, verbose_name=_('name'), help_text=_('name notification source'))
 	description = models.TextField(default=None, null=True, blank=True, verbose_name=_('Description'), help_text=_('description of notification source'))
 	group = models.ForeignKey(NotificationSourceGroup, default=None, null=True, blank=True, on_delete=models.SET_NULL, verbose_name = _('group'), help_text=_('group of notifications'))
 
@@ -147,7 +191,7 @@ class NotificationSource(models.Model):
 
 class NotificationType(models.Model):
 	value = models.CharField(max_length=64, null=False, blank=False, unique=True, verbose_name=_('Value'), help_text=_('internal name notification type'))
-	name = models.CharField(max_length=191, null=False, blank=False, verbose_name=_('Name'), help_text=_('name notification type'))
+	name = models.CharField(max_length=191, null=False, blank=False, verbose_name=_('name'), help_text=_('name notification type'))
 
 	class Meta:
 		verbose_name = f'🔔{_("Notification Type")}'
@@ -202,16 +246,16 @@ class NotificationDelay(models.Model):
 
 
 class NotificationTask(models.Model):
-	created_at = models.DateTimeField(_('date created'), auto_now_add=True, editable=False, db_index=True)
+	created = models.DateTimeField(_('date created'), auto_now_add=True, editable=False, db_index=True)
 	send_after = models.DateTimeField(_('plan time sended'), default=None, null=True, blank=True, db_index=True)
-	sended_at = models.DateTimeField(_('date sended'), default=None, null=True, blank=True, db_index=True)
+	sended = models.DateTimeField(_('date sended'), default=None, null=True, blank=True, db_index=True)
 	source = models.ForeignKey(NotificationSource, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name = _('source'), help_text=_('source of notification'))
 	notification_type = models.ForeignKey(NotificationType, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name = _('type'), help_text=_('type of notification'))
 	target_user = models.ForeignKey(User, default=None,  null=True, blank=True, on_delete=models.CASCADE, verbose_name=_('target user'), help_text=_('task target user'))
 	response = models.CharField(max_length=199, default=None, null=True, blank=True, verbose_name = _('response'), help_text=_('response of receiver if exists'))
 	subject = models.CharField(max_length=199, default=None, null=True, blank=True, verbose_name = _('subject'), help_text=_('subject of notification'))
 	content = models.TextField(default='', null=False, blank=False, verbose_name=_('target text'), help_text=_('task target text'))
-	entity = JSONField(default=dict, blank=True, verbose_name = _('entity'), help_text=_('entity of task notification'))
+	entity = models.JSONField(default=dict, blank=True, verbose_name = _('entity'), help_text=_('entity of task notification'))
 	description = models.TextField(default='', null=False, blank=False, verbose_name=_('description'), help_text=_('task description'))
 	reason = models.TextField(default=None, null=True, blank=True, verbose_name=_('reason'), help_text=_('task reason problems'))
 
@@ -223,8 +267,8 @@ class NotificationTask(models.Model):
 
 
 class NotificationBulkEmail(models.Model):
-	name = models.CharField(max_length=191, unique=True, null=False, blank=False, verbose_name=_('Name'), help_text=_('name bulk email list'))
-	emails = models.TextField(verbose_name=_('Name'), help_text=_('name bulk email list'))
+	name = models.CharField(max_length=191, unique=True, null=False, blank=False, verbose_name=_('name'), help_text=_('name bulk email list'))
+	emails = models.TextField(verbose_name=_('emails'), help_text=_('list of bulk emails'))
 	notifications = models.JSONField(default=list, null=False, blank=False, verbose_name=_('notification options'), help_text=_('notification options'))
 
 	class Meta:
