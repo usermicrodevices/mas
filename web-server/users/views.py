@@ -2,6 +2,7 @@ import logging, sys
 
 from django.core.cache import caches
 from django.db.models import Q
+from django.contrib.auth.models import Group, Permission
 
 from rest_framework import viewsets, filters
 from rest_framework.pagination import LimitOffsetPagination
@@ -12,6 +13,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Role, User
 from .serializers import RoleSerializer, UserSerializer
+
+
+class GroupViewSet(viewsets.ModelViewSet):
+	serializer_class = GroupSerializer
+	queryset = Group.objects.all()
 
 
 class RoleViewSet(viewsets.ModelViewSet):

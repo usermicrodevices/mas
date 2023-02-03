@@ -14,6 +14,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.http import Http404, JsonResponse, HttpResponseNotFound, FileResponse, HttpResponse, StreamingHttpResponse, HttpResponseServerError, HttpResponseForbidden
+from django.contrib.auth.models import Group, Permission
 from django.db import connection
 from django.db.utils import IntegrityError
 from django.db.models import F, Q, Avg, Sum, Count, Value, IntegerField, FloatField, DecimalField, Case, When, Max, Min, ForeignKey, CASCADE, Window, Exists, OuterRef
@@ -36,11 +37,11 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_cookie
 
-from .models import Owner, Tag, DeviceType, DeviceGroup, Device, History
+from .models import NotificationSource, NotificationType, NotificationTemplate, NotificationSourceGroup, NotificationOption, NotificationDelay, NotificationBulkEmail
 
 from users.models import RoleField
 
-from .serializers import OwnerSerializer, TagSerializer, DeviceTypeSerializer, DeviceGroupSerializer, DeviceSerializer, HistorySerializer
+from .serializers import NotificationSourceSerializer, NotificationTypeSerializer, NotificationTemplateSerializer, NotificationSourceGroupSerializer, NotificationOptionSerializer, NotificationDelaySerializer, NotificationBulkEmailSerializer
 
 
 class IsOwnerOrReadOnly(BasePermission):
@@ -100,60 +101,87 @@ class AppBaseViewSet(viewsets.ModelViewSet):
 			self.logi(mail_response, email_str, subject, link)
 
 
-class OwnerViewSet(AppBaseViewSet):
-	serializer_class = OwnerSerializer
-	queryset = Owner.objects.filter(active=True)
+class NotificationSourceGroupViewSet(AppBaseViewSet):
+	serializer_class = NotificationSourceGroupSerializer
+	queryset = NotificationSourceGroup.objects.all()
+	filterset_fields = ['id', 'name', 'description']
+	search_fields = ['id', 'name', 'description']
 
 
-class TagViewSet(AppBaseViewSet):
-	serializer_class = TagSerializer
-	queryset = Tag.objects.all()
-
-
-class DeviceTypeViewSet(AppBaseViewSet):
-	serializer_class = DeviceTypeSerializer
-	queryset = DeviceType.objects.all()
-
-
-class DeviceGroupViewSet(AppBaseViewSet):
-	serializer_class = DeviceGroupSerializer
-	queryset = DeviceGroup.objects.all()
-
-
-class DeviceViewSet(AppBaseViewSet):
-	cache_devices = caches['devices']
-	serializer_class = DeviceSerializer
-	queryset = Device.objects.none()
-	filterset_fields = ['id',  'created_date']
-	search_fields = ['id',  'created_date']
+class NotificationSourceViewSet(AppBaseViewSet):
+	serializer_class = NotificationSourceSerializer
+	queryset = NotificationSource.objects.all()
+	filterset_fields = ['id', 'value', 'name', 'description', 'group__id']
+	search_fields = ['id', 'value', 'name', 'description', 'group__name', 'group__description']
 
 	def get_queryset(self):
-		kwargs = {}
-		for k, v in self.request.query_params.items():
-			if '_id__in' in k:
-				try:
-					kwargs[k] = [int(i) for i in v.split(',')]
-				except Exception as e:
-					self.loge(e)
-			elif '__range' in k or '__in' in k:
-				kwargs[k] = v.split(',')
-			elif k not in ('limit', 'offset', 'ordering', 'search', 'format', 'next', 'subtitle'):
-				kwargs[k] = v
 		current_user = self.request.user
 		if current_user.is_superuser:
-			return Device.objects.filter(**kwargs)
-		if not current_user.role:
-			self.logw('ROLE IS EMPTY', current_user)
-		return Device.objects.filter(**kwargs).distinct()
-
-	def accessed_queryset_beverages(self, request):
-		current_user = request.user
-		if current_user.is_superuser:
-			return Beverage.objects.all()
+			return NotificationSource.objects.all()
 		else:
-			return Beverage.objects.filter(Q(device__sale_point__company__in=current_user.companies.all()) | Q(device__sale_point__in=current_user.sale_points.all())).filter(~Q(device__sale_point__status_reference_id=2)).distinct()
+			return NotificationSource.objects.filter(group_id=1)
 
 
-class HistoryViewSet(AppBaseViewSet):
-	serializer_class = HistorySerializer
-	queryset = History.objects.all()
+class NotificationTypeViewSet(AppBaseViewSet):
+	serializer_class = NotificationTypeSerializer
+	queryset = NotificationType.objects.all()
+	filterset_fields = ['id', 'value', 'name']
+	search_fields = ['id', 'value', 'name']
+
+
+class NotificationTemplateViewSet(AppBaseViewSet):
+	serializer_class = NotificationTemplateSerializer
+	queryset = NotificationTemplate.objects.all()
+	filterset_fields = ['id', 'source', 'body', 'notification_type__id']
+	search_fields = ['id', 'source', 'body', 'notification_type__value', 'notification_type__name']
+
+
+class NotificationOptionViewSet(AppBaseViewSet):
+	serializer_class = NotificationOptionSerializer
+	queryset = NotificationOption.objects.none()
+	filterset_fields = ['id', 'source', 'owner', 'types__id']
+	search_fields = ['id', 'source', 'owner__username', 'owner__first_name', 'owner__last_name', 'owner__email', 'types__value', 'types__name']
+
+	def get_queryset(self):
+		current_user = self.request.user
+		if current_user.is_superuser:
+			return NotificationOption.objects.all()
+		else:
+			return NotificationOption.objects.filter(owner_id=current_user.id, source__group_id=1)
+
+	@action(detail=False, methods=['get'])
+	def current(self, request):
+		ser = self.serializer_class(self.get_queryset(), many = True)
+		return Response(ser.data)
+
+	def perform_create(self, serializer):
+		serializer.save(owner=self.request.user)
+
+
+class NotificationDelayViewSet(AppBaseViewSet):
+	serializer_class = NotificationDelaySerializer
+	queryset = NotificationDelay.objects.none()
+	filterset_fields = ['id', 'source', 'owner', 'interval']
+	search_fields = ['id', 'source', 'owner__username', 'owner__first_name', 'owner__last_name', 'owner__email', 'interval']
+
+	def get_queryset(self):
+		current_user = self.request.user
+		if current_user.is_superuser:
+			return NotificationDelay.objects.all()
+		else:
+			return NotificationDelay.objects.filter(owner_id=current_user.id)
+
+	@action(detail=False, methods=['get'])
+	def current(self, request):
+		ser = self.serializer_class(self.get_queryset(), many = True)
+		return Response(ser.data)
+
+	def perform_create(self, serializer):
+		serializer.save(owner=self.request.user)
+
+
+class NotificationBulkEmailViewSet(AppBaseViewSet):
+	serializer_class = NotificationBulkEmailSerializer
+	queryset = NotificationBulkEmail.objects.none()
+	filterset_fields = ['id',  'name', 'emails']
+	search_fields = ['id', 'name', 'emails', 'notifications']
