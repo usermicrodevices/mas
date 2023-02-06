@@ -1,4 +1,4 @@
-import logging, sys
+import logging, sys, uuid
 from datetime import datetime as dt, timedelta
 
 from django.db import models, transaction
@@ -102,6 +102,7 @@ class DeviceGroup(CustomAbstractModel):
 
 
 class Device(CustomAbstractModel):
+	id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
 	group = models.ForeignKey(DeviceGroup, default=None, null=True, blank=True, on_delete=models.SET_NULL, verbose_name=_('group'))
 	device_type = models.ForeignKey(DeviceType, default=None, null=True, blank=True, on_delete=models.SET_NULL, verbose_name=_('type'))
 	created = models.DateTimeField(auto_now_add=True, verbose_name=_('created date'), help_text=_('Date of creation on server'))
