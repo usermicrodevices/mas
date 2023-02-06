@@ -2,7 +2,6 @@ import logging, sys
 from datetime import datetime as dt, timedelta
 
 from django.db import models, transaction
-from django.db.models import F, Max, Subquery, Value, IntegerField
 from django.db.models.signals import pre_save, post_save, post_init
 from django.dispatch import receiver
 from django.utils import timezone
@@ -124,7 +123,7 @@ class NotificationOption(models.Model):
 class NotificationDelay(models.Model):
 	source = models.ForeignKey(NotificationSource, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name = _('source'), help_text=_('source of notification'))
 	owner = models.ForeignKey(User, default=0,  null=False, blank=False, on_delete=models.CASCADE, verbose_name=_('owner'), help_text=_('owner of notification option'))
-	interval = models.IntegerField(default=0, verbose_name = _('time interval (seconds)'), help_text=_('Time interval (seconds) between get reaction and start send notification to user'))
+	interval = models.DurationField(default=timedelta, null=True, blank=True, verbose_name = _('time interval (seconds)'), help_text=_('Time interval (seconds) between get reaction and start send notification to user'))
 
 	class Meta:
 		unique_together = ('source', 'owner')
@@ -160,7 +159,7 @@ class NotificationTask(models.Model):
 class NotificationBulkEmail(models.Model):
 	name = models.CharField(max_length=191, unique=True, null=False, blank=False, verbose_name=_('name'), help_text=_('name bulk email list'))
 	emails = models.TextField(verbose_name=_('emails'), help_text=_('list of bulk emails'))
-	notifications = models.JSONField(default=list, null=False, blank=False, verbose_name=_('notification options'), help_text=_('notification options'))
+	notifications = models.JSONField(default=dict, null=False, blank=False, verbose_name=_('notification options'), help_text=_('notification options'))
 
 	class Meta:
 		verbose_name = f'📨{_("Notification Bulk Email")}'

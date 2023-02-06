@@ -7,20 +7,31 @@ import rest_framework_jwt.views
 
 from . import views
 
-from core.views import DeviceViewSet
-
 from users.views import RoleViewSet, UserViewSet
+
+from notifications.views import NotificationSourceGroupViewSet, NotificationSourceViewSet, NotificationTypeViewSet, NotificationTemplateViewSet, NotificationOptionViewSet, NotificationDelayViewSet, NotificationBulkEmailViewSet
+
+from core.views import OwnerViewSet, TagViewSet, DeviceTypeViewSet, DeviceGroupViewSet, DeviceViewSet, HistoryViewSet
 
 router_refs = DefaultRouter()
 router_refs.register('roles', RoleViewSet)
 router_refs.register('users', UserViewSet)
+router_refs.register('devicetypes', DeviceTypeViewSet)
+router_refs.register('devicegroups', DeviceGroupViewSet)
+router_refs.register('notificationsourcegroups', NotificationSourceGroupViewSet)
+router_refs.register('notificationsources', NotificationSourceViewSet)
+router_refs.register('notificationtypes', NotificationTypeViewSet)
+router_refs.register('notificationtemplates', NotificationTemplateViewSet)
 
 router = DefaultRouter()
+router.register('owners', OwnerViewSet, basename='owner')
+router.register('tags', TagViewSet, basename='tag')
 router.register('devices', EventViewSet, basename='device')
+router.register('histories', HistoryViewSet, basename='history')
+router.register('notificationoptions', NotificationOptionViewSet, basename='notificationoption')
 
 urlpatterns = [
 	path('', views.index, name='index'),
-	path('privacy', views.url_privacy, name='url_privacy'),
 	path('version', views.handle_version),
 	path('user', views.get_current_user),
 	path('login', rest_framework_jwt.views.obtain_jwt_token),
