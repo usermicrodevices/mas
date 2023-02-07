@@ -8,6 +8,6 @@ $uuid = sudo cat /sys/class/dmi/id/product_uuid
 
 $computer_info = lshw -json
 
-$response = Invoke-WebRequest -Method POST -Body (@{"username"=$api_login; "password"=$api_pass}|ConvertTo-Json) -Uri $api_host/login -ContentType application/json | ConvertFrom-Json
+$response = curl --request POST --url $api_host/login --header 'Content-Type: application/json' --data '{"username":$api_login,"password":$api_pass}'
 
-Invoke-WebRequest -Headers @{Authorization = ('Bearer {0}' -f $response.token)} -Method PATCH -Body (@{"status"="1"; "extinfo"=$computer_info} | ConvertTo-Json) -Uri $api_host/data/devices/$uuid -ContentType application/json
+curl --request POST --url $api_host/data/devices/$uuid --header 'Authorization: Bearer {0}' -f $response.token --header 'Content-Type: application/json' --data '{"status":1, "extinfo":{0}}' -f $computer_info
