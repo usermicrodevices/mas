@@ -1,5 +1,8 @@
 import os, datetime
 import mas.middleware
+import django
+django.utils.encoding.smart_text = django.utils.encoding.smart_str
+django.utils.translation.ugettext = django.utils.translation.gettext
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -46,14 +49,14 @@ MIDDLEWARE = [
 'django.contrib.messages.middleware.MessageMiddleware',
 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 'django.middleware.locale.LocaleMiddleware',
-'sensors.middleware.TimezoneMiddleware',
-'corsheaders.middleware.CorsPostCsrfMiddleware',
+'mas.middleware.TimezoneMiddleware',
+#'corsheaders.middleware.CorsPostCsrfMiddleware',
 'crum.CurrentRequestUserMiddleware'
 ]
 
 LOGOUT_URL = '/api/admin/logout/'
 
-ROOT_URLCONF = 'sensors.urls'
+ROOT_URLCONF = 'mas.urls'
 
 TEMPLATES = [
 	{
@@ -102,7 +105,8 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 102400
 CACHES = {
 	'default':{'BACKEND':'django.core.cache.backends.locmem.LocMemCache', 'OPTIONS':{'MAX_ENTRIES':99999999, 'CULL_FREQUENCY':99999998}},
 	'notifications':{'BACKEND':'django.core.cache.backends.locmem.LocMemCache', 'LOCATION':'notifications', 'TIMEOUT':300, 'OPTIONS':{'MAX_ENTRIES':99999999, 'CULL_FREQUENCY':99999998}},
-	'users':{'BACKEND':'django.core.cache.backends.locmem.LocMemCache', 'LOCATION':'users', 'TIMEOUT':86400, 'OPTIONS':{'MAX_ENTRIES':99999999, 'CULL_FREQUENCY':99999998}}
+	'users':{'BACKEND':'django.core.cache.backends.locmem.LocMemCache', 'LOCATION':'users', 'TIMEOUT':86400, 'OPTIONS':{'MAX_ENTRIES':99999999, 'CULL_FREQUENCY':99999998}},
+	'devices':{'BACKEND':'django.core.cache.backends.locmem.LocMemCache', 'LOCATION':'users', 'TIMEOUT':86400, 'OPTIONS':{'MAX_ENTRIES':99999999, 'CULL_FREQUENCY':99999998}}
 }
 
 AUTH_PASSWORD_VALIDATORS = [

@@ -7,8 +7,8 @@ class TimezoneMiddleware:
 
 	def __call__(self, request):
 		tzname = request.session.get('django_timezone')
-		if not tzname and hasattr(request, 'user'):
-			tzname = request.user.tz
+		#if not tzname and hasattr(request, 'user') and not request.user.is_anonymous:
+			#tzname = request.user.tz
 		if tzname:
 			timezone.activate(tzname)
 		else:

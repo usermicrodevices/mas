@@ -27,12 +27,12 @@ from django.conf import settings
 
 from django_select2.forms import Select2Widget
 
-from .models import CustomAbstractModel, DeviceType, Device
+from .models import CustomAbstractModel, DeviceType, Device, DeviceGroup, History, Owner, Tag
 
 from users.models import User
 
 list_models = inspect.getmembers(sys.modules['core.models'], inspect.isclass)
-exclude_classes = [CustomAbstractModel, DeviceType, Device, User]
+exclude_classes = [CustomAbstractModel, DeviceType, Device, DeviceGroup, History, Owner, Tag, User]
 
 for name_class, model_class in list_models:
 	mname = model_class.__module__
@@ -95,7 +95,7 @@ class TZForm(forms.ModelForm):
 	tz = forms.ChoiceField(widget=Select2Widget, choices=[(t, t) for t in sorted(available_timezones())])
 class UploadFileForm(forms.Form):
 	_selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
-	file = forms.FileField(widget=forms.ClearableFileInput(attrs={'multiple': True}))
+	file = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
 
 class CustomModelAdmin(admin.ModelAdmin):
@@ -154,15 +154,15 @@ admin.site.register(DeviceGroup, DeviceGroupAdmin)
 
 
 class DeviceAdmin(CustomModelAdmin):
-	list_display = ['id', 'extinfo', 'group', 'device_model', 'created', 'status']
+	list_display = ['id', 'extinfo', 'group', 'device_type', 'created', 'status']
 	list_display_links = ['id', 'extinfo']
 	search_fields = ['id', 'created', 'extinfo', 'group__name']
 admin.site.register(Device, DeviceAdmin)
 
 
 class HistoryAdmin(CustomModelAdmin):
-	list_display = ['id', 'created', 'closed', 'group', 'device_model', 'status']
-	list_display_links = ['id', 'extinfo']
-	search_fields = ['id', 'created', 'closed', 'extinfo', 'group__name']
+	list_display = ['id', 'created', 'closed', 'device']
+	list_display_links = ['id', 'created', 'closed']
+	search_fields = ['id', 'created', 'closed']
 admin.site.register(History, HistoryAdmin)
 

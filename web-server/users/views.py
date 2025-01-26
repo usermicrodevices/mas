@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .models import Role, User
-from .serializers import RoleSerializer, UserSerializer
+from .serializers import RoleSerializer, UserSerializer, GroupSerializer
 
 
 class GroupViewSet(viewsets.ModelViewSet):

@@ -24,12 +24,11 @@ from django.db.models.functions import Now
 from django.db.models.expressions import RawSQL
 from django.core.serializers import serialize
 from django.forms.models import model_to_dict
+from django.apps import apps as django_apps
 
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 from rest_framework.schemas.coreapi import SchemaGenerator
-
-from core.models import Device, NotificationSource, NotificationOption, NotificationTemplate, NotificationBulkEmail
 
 from users.models import User
 from users.serializers import UserSerializer
@@ -40,6 +39,10 @@ RATIO_TDS = 10000
 RATIO_CURRENT_STRENGTH = 40
 RATIO_VOLTAGE = 10000
 
+
+def get_model(app_model):
+	app_name, model_name = app_model.split('.')
+	return django_apps.get_app_config(app_name).get_model(model_name)
 
 def logi(*args):
 	msg = f'💡{sys._getframe().f_back.f_code.co_name}'
@@ -79,7 +82,7 @@ def jwt_response_payload_handler(token, user=None, request={}, _=None):
 	return {'token': token, 'user': UserSerializer(user).data if user else None}
 
 def notify(obj, source_value='', obj_description='', exclude_users=[]):
-	nsrc = NotificationSource.objects.filter(value=source_value).first()
+	nsrc = get_model('core.NotificationSource').objects.filter(value=source_value).first()
 	if not nsrc:
 		return
 	subject = f'{obj._meta.verbose_name} [{obj_description}]'
@@ -89,17 +92,17 @@ def notify(obj, source_value='', obj_description='', exclude_users=[]):
 	users = User.objects.filter(users_conditions).only('id', 'email').distinct()
 	list_check_emails = []
 	for user in users:
-		ntf_option = NotificationOption.objects.filter(owner__id=user.id, source_id=nsrc.id).exclude().first()
+		ntf_option = get_model('core.NotificationOption').objects.filter(owner__id=user.id, source_id=nsrc.id).exclude().first()
 		if not ntf_option:
-			ntf_option = NotificationOption.objects.filter(owner__id=0, source_id=nsrc.id).first()
+			ntf_option = get_model('core.NotificationOption').objects.filter(owner__id=0, source_id=nsrc.id).first()
 		if ntf_option:
 			for t in ntf_option.types.all():
 				if t.value == 'email':
 					if not user.email or user.email == 'email@email.ru':
 						continue
 					try:
-						template_email = NotificationTemplate.objects.get(source__id=ntf_option.source.id, notification_type__id=t.id)
-					except NotificationTemplate.DoesNotExist as e:
+						template_email = get_model('core.NotificationTemplate').objects.get(source__id=ntf_option.source.id, notification_type__id=t.id)
+					except ObjectDoesNotExist as e:
 						loge(e, self, ntf_option.source, t)
 					except Exception as e:
 						loge(e)
@@ -128,7 +131,7 @@ def notify(obj, source_value='', obj_description='', exclude_users=[]):
 										except Exception as e:
 											loge(e)
 	######SEARCH FROM NotificationBulkEmail######
-	bulk_emails = NotificationBulkEmail.objects.filter(notifications__contains=[{'sources':[nsrc.id]}])
+	bulk_emails = get_model('core.NotificationBulkEmail').objects.filter(notifications__contains=[{'sources':[nsrc.id]}])
 	bulk_emails_count = bulk_emails.count()
 	if bulk_emails_count:
 		email_message = '<html><body><p>{}</p><p>{}</p><p>{}</p></body></html>'.format(obj_description, device.sale_point.name, device.name)

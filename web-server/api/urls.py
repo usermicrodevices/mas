@@ -9,7 +9,7 @@ from . import views
 
 from users.views import RoleViewSet, UserViewSet
 
-from notifications.views import NotificationSourceGroupViewSet, NotificationSourceViewSet, NotificationTypeViewSet, NotificationTemplateViewSet, NotificationOptionViewSet, NotificationDelayViewSet, NotificationBulkEmailViewSet
+#from notifications.views import NotificationSourceGroupViewSet, NotificationSourceViewSet, NotificationTypeViewSet, NotificationTemplateViewSet, NotificationOptionViewSet, NotificationDelayViewSet, NotificationBulkEmailViewSet
 
 from core.views import OwnerViewSet, TagViewSet, DeviceTypeViewSet, DeviceGroupViewSet, DeviceViewSet, HistoryViewSet
 
@@ -18,17 +18,17 @@ router_refs.register('roles', RoleViewSet)
 router_refs.register('users', UserViewSet)
 router_refs.register('devicetypes', DeviceTypeViewSet)
 router_refs.register('devicegroups', DeviceGroupViewSet)
-router_refs.register('notificationsourcegroups', NotificationSourceGroupViewSet)
-router_refs.register('notificationsources', NotificationSourceViewSet)
-router_refs.register('notificationtypes', NotificationTypeViewSet)
-router_refs.register('notificationtemplates', NotificationTemplateViewSet)
+#router_refs.register('notificationsourcegroups', NotificationSourceGroupViewSet)
+#router_refs.register('notificationsources', NotificationSourceViewSet)
+#router_refs.register('notificationtypes', NotificationTypeViewSet)
+#router_refs.register('notificationtemplates', NotificationTemplateViewSet)
 
 router = DefaultRouter()
 router.register('owners', OwnerViewSet, basename='owner')
 router.register('tags', TagViewSet, basename='tag')
-router.register('devices', EventViewSet, basename='device')
+router.register('devices', DeviceViewSet, basename='device')
 router.register('histories', HistoryViewSet, basename='history')
-router.register('notificationoptions', NotificationOptionViewSet, basename='notificationoption')
+#router.register('notificationoptions', NotificationOptionViewSet, basename='notificationoption')
 
 urlpatterns = [
 	path('', views.index, name='index'),

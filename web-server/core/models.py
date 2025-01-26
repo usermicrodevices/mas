@@ -114,7 +114,7 @@ class Device(CustomAbstractModel):
 	class Meta:
 		verbose_name = f'💻{_("Device")}'
 		verbose_name_plural = f'💻{_("Devices")}'
-		ordering = ['name']
+		ordering = ['-id']
 
 	def __str__(self):
 		return self.name
@@ -144,10 +144,10 @@ class History(CustomAbstractModel):
 	created = models.DateTimeField(_('created date'), auto_now_add=True, help_text=_('Date of creation new record'))
 	closed = models.DateTimeField(_('closed date'), default=None, null=True, blank=True, db_index=True, help_text=_('Closed date of history'))
 	device = models.ForeignKey(Device, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name=_('device'))
-	owner = device = models.ForeignKey(Owner, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name=_('device'))
+	owner = models.ForeignKey(Owner, default=0, null=False, blank=False, on_delete=models.CASCADE, verbose_name=_('owner'))
 
 	class Meta:
 		unique_together = ['created', 'device', 'owner']
 		verbose_name = f'📜{_("History")}'
 		verbose_name_plural = f'📜{_("Histories")}'
-		ordering = ['name']
+		ordering = ['-created']

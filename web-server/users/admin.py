@@ -22,16 +22,21 @@ from django.conf import settings
 from transliterate import slugify
 from openpyxl import load_workbook
 
-from core.models import Company, SalePoint, NotificationType, NotificationSource, NotificationOption
 from .models import Role, RoleModel, RoleField, User
+from django.apps import apps as django_apps
 
 
 admin.site.subtitle = _('Users')
 
 
+def get_model(app_model):
+	app_name, model_name = app_model.split('.')
+	return django_apps.get_app_config(app_name).get_model(model_name)
+
+
 class UploadFileForm(forms.Form):
 	_selected_action = forms.CharField(widget=forms.MultipleHiddenInput)
-	file = forms.FileField(widget=forms.ClearableFileInput(attrs={'multiple': True}))
+	file = forms.FileField(widget=forms.ClearableFileInput(attrs={'allow_multiple_selected': True}))
 
 
 class CustomBaseModelAdmin(admin.ModelAdmin):
@@ -66,9 +71,9 @@ admin.site.register(ContentType, ContentTypeAdmin)
 
 
 class RoleAdmin(admin.ModelAdmin):
-	list_display = ('id', 'weight', 'value', 'description', 'group', 'mobile')
+	list_display = ('id', 'weight', 'value', 'description', 'group')
 	list_display_links = ('value',)
-	search_fields = ('value', 'description', 'mobile', 'group__name')
+	search_fields = ('value', 'description', 'group__name')
 	list_select_related = ('group',)
 	list_filter = ('group',)
 admin.site.register(Role, RoleAdmin)
@@ -328,22 +333,22 @@ class UserAdmin(BaseUserAdmin):
 	def set_all_push_notifications(self, request, queryset):
 		changed = 0
 		try:
-			push_type = NotificationType.objects.get(value='push')
+			push_type = get_model('core.NotificationType').objects.get(value='push')
 		except Exception as e:
 			self.loge(e)
 			self.message_user(request, f'{e}', messages.ERROR)
 			return
-		sources = NotificationSource.objects.all()
+		sources = get_model('core.NotificationSource').objects.all()
 		self.logi(f'Notification Sources = {sources.count()}')
 		for user in queryset:
 			self.logi(f'USER = {user}')
 			for src in sources:
 				ntfopt = None
 				try:
-					ntfopt = NotificationOption.objects.get(owner_id=user.id, source_id=src.id)
-				except NotificationOption.DoesNotExist as e:
+					ntfopt = get_model('core.NotificationOption').objects.get(owner_id=user.id, source_id=src.id)
+				except ObjectDoesNotExist as e:
 					try:
-						ntfopt = NotificationOption(owner_id=user.id, source_id=src.id)
+						ntfopt = get_model('core.NotificationOption')(owner_id=user.id, source_id=src.id)
 					except Exception as e:
 						self.loge(e)
 					else:
